@@ -1,0 +1,26 @@
+# Configuração para text2sql-compare
+# Parâmetros de linha de comando têm precedência sobre este arquivo.
+
+# Caminhos dos arquivos
+paths:
+  questions: "data/questions.csv"
+  results_dir: "data/results"
+
+# Configuração de comparação por pares
+comparison:
+  # Run do ground truth a usar
+  gt_run: "default"
+
+  # Par modelo/run a comparar (ex: "Qwen3-32B-AWQ/default")
+  model_run: "Qwen3-32B-AWQ/default"
+
+# Exemplos de uso:
+#
+# Comparar um par específico:
+#   text2sql-compare compare --gt default --model Qwen3-32B-AWQ/default
+#
+# Listar pares disponíveis:
+#   text2sql-compare list-pairs
+#
+# Usando configuração do YAML:
+#   text2sql-compare compare -c config/compare_config.yaml

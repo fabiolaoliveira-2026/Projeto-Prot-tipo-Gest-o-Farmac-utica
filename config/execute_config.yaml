@@ -1,0 +1,27 @@
+# Configuração para text2sql-execute
+# Parâmetros de linha de comando têm precedência sobre este arquivo.
+
+# Caminhos dos diretórios
+# Estrutura: queries/modelo/run/*.sql -> results/modelo/run/N/resultado.csv
+paths:
+  # Diretório com arquivos .sql a executar
+#  queries: "data/queries/Qwen3-32B-AWQ/default"
+  queries: "data/queries/ground_truth/default"
+  
+  # Diretório para salvar resultados das execuções
+#  results: "data/results/Qwen3-32B-AWQ/default"
+  results: "data/results/ground_truth/default"
+
+# Configurações de substituição no SQL
+sql:
+  # Data para substituir CURRENT_DATE nas queries
+  target_date: "2024-07-19"
+
+# Configuração do banco de dados
+# Prioridade: variáveis de ambiente (DB_HOST, DB_PORT, etc.) > YAML > padrão
+database:
+  host: "--"
+  port: "--"
+  name: "--"
+  user: "--"
+  password: "--"

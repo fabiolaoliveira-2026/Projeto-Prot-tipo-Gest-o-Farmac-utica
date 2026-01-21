@@ -1,0 +1,64 @@
+# Configuração para text2sql-ground-truth
+# Gera variações do ground truth substituindo parâmetros X1, Y1, etc.
+
+# Caminhos dos diretórios
+paths:
+  # Diretório com os arquivos SQL originais do ground truth (com placeholders)
+  source: "data/queries/ground_truth"
+  
+  # Diretório de saída para ground truth processado
+  # Estrutura: output/run/N.sql
+  output: "data/queries/ground_truth"
+
+# Configuração de saída
+output:
+  run: "default"                    # Nome da run
+
+# Parâmetros para substituição nos SQLs
+parameters:
+  # Valores default (aplicados quando não há específico para a pergunta)
+  default:
+    X1: "37"
+    Y1: "default"
+
+  # Parâmetros específicos por pergunta (ID = nome do arquivo sem .sql)
+  questions:
+    2:
+      Y1: "90 days"
+    3:
+      X1: "37"
+      Y1: "180 days"
+    4:
+      X1: "37"
+    6:
+      Y1: "90"
+      Y2: "180"
+    7:
+      Y1: "30 days"
+    8:
+      Y1: "0"
+    10:
+      X1: "37"
+    11:
+      Y1: "30 days"
+    12:
+      Y1: "365 days"
+    13:
+      Y1: "90 days"
+    14:
+      Y1: "60"
+    15:
+      Y1: "90 days"
+    16:
+      X1: "37"
+      Y1: "30 days"
+    17:
+      Y1: "30"
+      Y2: "90 days"
+    18:
+      Y1: "30 days"
+    19:
+      X1: "37"
+      Y1: "30 days"
+    20:
+      Y1: "7"

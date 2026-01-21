@@ -1,0 +1,13 @@
+# Configuração para text2sql-rag-index
+# Parâmetros de linha de comando têm precedência sobre este arquivo.
+
+# Caminhos dos arquivos
+paths:
+  schema: "data/schema.yaml"
+  cache_dir: ".cache/embeddings"
+
+# Configuração do RAG
+rag:
+  model_name: "neuralmind/bert-large-portuguese-cased"
+  similarity_threshold: 0.3
+  force_rebuild: false
