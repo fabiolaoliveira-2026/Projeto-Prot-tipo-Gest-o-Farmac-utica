@@ -23,4 +23,3 @@ def create_app() -> App:
 
 app = create_app()
 
-

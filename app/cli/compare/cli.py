@@ -4,9 +4,11 @@ CLI de comparação de resultados Text2SQL.
 Este módulo fornece uma interface de linha de comando para comparar
 os resultados de modelos de IA com o ground truth, gerando arquivos
 CSV com métricas e resumos. Trabalha com pares de runs.
+Também permite exportar relatórios HTML sem necessidade de subir o servidor.
 """
 
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Annotated, Optional
 
@@ -16,9 +18,10 @@ import typer
 from app.cli.config_loader import get_config_value, load_yaml_config
 from app.config.paths import COMPARE_CONFIG_FILE, QUESTIONS_FILE, RESULTS_DIR
 from app.metrics.comparator import compare_runs
+from app.utils.html_exporter import generate_full_html_report
 
 app = typer.Typer(
-    name="text2sql-compare",
+    name="compare",
     help="Compara resultados de modelos Text2SQL com o ground truth.",
     add_completion=False,
 )
@@ -69,7 +72,7 @@ def discover_comparison_pairs(results_dir: Path) -> list[dict]:
 
 
 @app.command()
-def compare(
+def run(
     config: Annotated[
         Optional[Path],
         typer.Option("--config", "-c", help="Arquivo YAML de configuração.")
@@ -212,13 +215,90 @@ def list_pairs(
 
 
 @app.command()
-def show_config() -> None:
+def config() -> None:
     """Mostra o caminho do arquivo de configuração padrão."""
     typer.echo(f"Arquivo de configuração: {COMPARE_CONFIG_FILE}")
     if COMPARE_CONFIG_FILE.exists():
         typer.echo("Status: ✓ Existe")
     else:
         typer.echo("Status: ✗ Não encontrado")
+
+
+@app.command()
+def export(
+    pair: Annotated[
+        str,
+        typer.Argument(help="Par de comparação no formato 'modelo/run' (ex: Qwen3-32B-AWQ/default).")
+    ],
+    output: Annotated[
+        Optional[Path],
+        typer.Option("--output", "-o", help="Caminho do arquivo HTML de saída. Se não informado, salva no diretório do modelo.")
+    ] = None,
+    results_dir: Annotated[
+        Optional[Path],
+        typer.Option("--results-dir", "-r", help="Diretório com os resultados.")
+    ] = RESULTS_DIR,
+) -> None:
+    """
+    Exporta relatório HTML completo de um par de comparação.
+
+    Gera um arquivo HTML auto-contido com Dashboard, tabela de perguntas
+    e detalhes de cada consulta SQL, incluindo comparação com ground truth.
+
+    Exemplos:
+        text2sql compare export Qwen3-32B-AWQ/default
+        text2sql compare export Qwen3-32B-AWQ/default -o relatorio.html
+    """
+    if isinstance(results_dir, str):
+        results_dir = Path(results_dir)
+
+    if "/" not in pair:
+        typer.echo("Erro: Par deve estar no formato 'modelo/run' (ex: Qwen3-32B-AWQ/default)", err=True)
+        raise typer.Exit(1)
+
+    model_name, run_name = pair.split("/", 1)
+    model_path = results_dir / model_name / run_name
+    metricas_path = model_path / "metricas.csv"
+    resumo_path = model_path / "resumo.csv"
+
+    if not model_path.exists():
+        typer.echo(f"Erro: Diretório do modelo não encontrado: {model_path}", err=True)
+        raise typer.Exit(1)
+
+    if not metricas_path.exists() or not resumo_path.exists():
+        typer.echo(f"Erro: Métricas não encontradas em {model_path}", err=True)
+        typer.echo("Execute 'text2sql compare run' primeiro para gerar as métricas.", err=True)
+        raise typer.Exit(1)
+
+    if output is None:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        safe_pair = pair.replace("/", "_")
+        output = model_path / f"relatorio_{safe_pair}_{timestamp}.html"
+
+    typer.echo("=" * 60)
+    typer.echo("EXPORTAÇÃO DE RELATÓRIO HTML")
+    typer.echo("=" * 60)
+    typer.echo(f"Par: {pair}")
+    typer.echo(f"Saída: {output}")
+    typer.echo("-" * 60)
+
+    try:
+        typer.echo("Gerando relatório HTML...")
+        html_content = generate_full_html_report(pair)
+
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(html_content, encoding="utf-8")
+
+        typer.echo(f"  ✓ Relatório salvo em: {output}")
+        typer.echo(f"  → Tamanho: {output.stat().st_size / 1024:.1f} KB")
+
+    except Exception as e:
+        typer.echo(f"  ✗ Erro ao gerar relatório: {e}", err=True)
+        raise typer.Exit(1)
+
+    typer.echo("=" * 60)
+    typer.echo("Exportação concluída!")
+    typer.echo(f"Abra o arquivo no navegador: file://{output.absolute()}")
 
 
 def main() -> int:

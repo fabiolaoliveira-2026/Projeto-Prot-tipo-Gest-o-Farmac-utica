@@ -134,3 +134,7 @@ templates:
      Comparar com o valor crítico:
       • Se cobertura ≤ 15 dias → Estoque crítico
       • Se cobertura > 15 dias → Estoque adequado ou de segurança
+     
+     
+     ## Estoque
+     A tabela de estoque sinaliza o estoque para um local. Caso seja necessário o estoque de forma ampla para um produto, o estoque deve ser somado.

@@ -52,4 +52,3 @@ def find_common_column(df_gt: pd.DataFrame, df_model: pd.DataFrame, validation_c
     
     return None
 
-

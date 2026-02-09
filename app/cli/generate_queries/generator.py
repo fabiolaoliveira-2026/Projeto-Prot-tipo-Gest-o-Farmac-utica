@@ -57,4 +57,3 @@ def predict(
         sql_content = sanitize_sql_output(response if isinstance(response, str) else response.get("content", ""))
         return (sql_content, "")
 
-
