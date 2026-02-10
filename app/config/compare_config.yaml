@@ -1,0 +1,14 @@
+# Configuração para text2sql-compare
+# Parâmetros de linha de comando têm precedência sobre este arquivo.
+
+# Caminhos dos arquivos
+paths:
+  questions: "data/questions.csv"
+  results_dir: "data/results"
+
+# Modelos a processar (opcional)
+# Se omitido ou vazio, processa todos os modelos disponíveis
+# models:
+#   - "Qwen3-32B-AWQ_br"
+#   - "outro-modelo"
+

@@ -1,0 +1,130 @@
+# Configuração para text2sql-generate
+# Parâmetros de linha de comando têm precedência sobre este arquivo.
+
+# Configuração do modelo LLM
+model:
+  name: "Qwen/Qwen3-32B-AWQ"
+  max_new_tokens: 32768
+  temperature: 0.0001
+  top_p: 0.95
+  enable_thinking: false
+
+# Configuração do RAG
+rag:
+  model_name: "neuralmind/bert-large-portuguese-cased"
+  similarity_threshold: 0.3
+  max_tables: 5
+  max_columns_per_table: 20
+
+# Caminhos dos arquivos
+paths:
+  questions: "data/questions.csv"
+  schema: "data/schema.yaml"
+
+# Configuração dos dados de entrada
+data:
+  question_column: "Questões"
+  extra_columns:
+    - "Tipo de dado necessário"
+    - "Intenção"
+
+# Configuração de saída
+output:
+  suffix: "_br"
+  save_queries: true
+
+# Parâmetros para substituição nas perguntas
+# Suporta múltiplos parâmetros indexados: X1, X2, Y1, Y2, etc.
+# X = item/produto/medicamento, Y = período de tempo
+parameters:
+  # Valores default (aplicados quando não há específico para a pergunta)
+  default:
+    X1: "Paracetamol"
+    Y1: "90 dias"
+
+  # Parâmetros específicos por pergunta (ID = índice da linha no CSV, começando em 1)
+  # Valores extraídos de questions_source.csv
+  questions:
+    # Q1: Sem parâmetros (estoque crítico)
+    # Q2: Liste medicamentos que vencem nos próximos Y1
+    2:
+      Y1: "90 dias"
+    # Q3: Histórico de consumo do item X1 nos últimos Y1
+    3:
+      X1: "Paracetamol"
+      Y1: "6 meses"
+    # Q4: Unidades do item X1 disponíveis
+    4:
+      X1: "Paracetamol"
+    # Q5: Sem parâmetros (consumo abaixo da média)
+    # Q6: Itens com aumento de consumo nos últimos Y1
+    6:
+      Y1: "3 meses"
+    # Q7: Top 10 medicamentos mais consumidos no Y1
+    7:
+      Y1: "último mês"
+    # Q8: Medicamento em falta no estoque Y1
+    8:
+      Y1: "hoje"
+    # Q9: Sem parâmetros (redistribuição)
+    # Q10: Setor com maior consumo do item X1
+    10:
+      X1: "Paracetamol"
+    # Q11: Lote em estoque que vence nos próximos Y1
+    11:
+      Y1: "30 dias"
+    # Q12: Impacto financeiro de perdas nos últimos Y1
+    12:
+      Y1: "12 meses"
+    # Q13: Risco de desabastecimento baseado no consumo do último Y1
+    13:
+      Y1: "trimestre"
+    # Q14: Alto custo com estoque acima de Y1 de consumo
+    14:
+      Y1: "60 dias"
+    # Q15: Risco de vencer nos próximos Y1 sem previsão de consumo
+    15:
+      Y1: "90 dias"
+    # Q16: Quantidade mínima do item X1 para o próximo Y1
+    16:
+      X1: "Paracetamol"
+      Y1: "mês"
+    # Q17: Itens para ressuprimento do próximo Y1 baseado na média dos últimos Y2
+    17:
+      Y1: "mês"
+      Y2: "3 meses"
+    # Q18: Itens com perdas no último Y1
+    18:
+      Y1: "mês"
+    # Q19: Sem parâmetros específicos (usa default)
+    # Q20: Variações de estoque na última Y1
+    20:
+      Y1: "semana"
+
+# Templates personalizados (opcional)
+# Descomente e edite conforme necessário
+# templates:
+#   system: |
+#     Você é um conversor de linguagem natural para SQL.
+#     Sua tarefa é converter perguntas em linguagem natural em consultas SQL precisas.
+#
+#     Contexto do Banco de Dados:
+#     {context}
+#
+#     Regras de negócio:
+#     {business_rules}
+#
+#     Diretrizes Importantes:
+#     - Sempre utilize os nomes de tabelas e colunas corretos.
+#     - Utilize JOINs explícitos ao acessar múltiplas tabelas.
+#     - Utilize cláusulas WHERE apropriadas para filtragem.
+#
+#     Output esperado: Apenas a string SQL válida iniciada por SELECT.
+#
+#   business_rules: |
+#     ## Valores não informados:
+#     Ao ser solicitado um valor não informado, considere como 'X'.
+#
+#     ## Definição de estoque crítico:
+#     Considera-se estoque crítico quando a cobertura é <= 15 dias.
+

@@ -100,16 +100,23 @@ templates:
      {business_rules}
 
      Diretrizes Importantes:
-     - Sempre que possível mostre o id do medicamento/item, adicione o no select.
+     - REGRA PRINCIPAL: Gere a consulta mais simples possível que responda exatamente o que foi perguntado. Não adicione filtros, tabelas, colunas ou subqueries além do necessário para responder a pergunta.
+     - Sempre que for questionado quais medicamentos mostre o id do medicamento/item, adicione-o no select.
      - Sempre utilize os nomes de tabelas e colunas corretos, conforme mostrado no contexto.
      - Utilize JOINs explícitos ao acessar múltiplas tabelas.
-     - Utilize cláusulas WHERE apropriadas para filtragem.
-     - Considere valores NULL em suas consultas.
-     - Utilize funções de agregação (SUM, COUNT, AVG) quando apropriado.
+     - Utilize apenas os filtros WHERE necessários para atender o que a pergunta pede. Não adicione filtros extras por suposição.
+     - Só trate valores NULL se a pergunta ou regra de negócio exigir.
+     - Só utilize funções de agregação se a pergunta pedir totais, médias, contagens, rankings ou similares.
      - Sempre utilize aliases para as tabelas para maior clareza.
      - Quando existir operações de única coluna no select, nomeie a coluna com o nome de antes da operação.
      - Palavras como "histórico", "listagem", "registros" ou "movimentações" indicam que o usuário quer os dados detalhados, sem agregação.
      - Toda query com "últimos X tempo" DEVE usar no filtro: BETWEEN (CURRENT_DATE - intervalo) AND CURRENT_DATE
+     - Padrão linguístico → Comportamento SQL:
+      "Qual [singular] tem maior/menor..." → LIMIT 1
+      "Quais [plural]..." → sem LIMIT 1
+      "Liste N... / Top N..." → LIMIT N
+     - Atente-se a todas informações fornecidas junto com a pergunta. A intenção e os dados necessários.
+     - Não adicione filtros, tabelas ou colunas que eu não tenha pedido explicitamente.
 
      Regras de Resposta:
      1. NÃO inicie com "Aqui está o SQL" ou explicações.
@@ -122,13 +129,15 @@ templates:
      ## Definição de estoque crítico:
      Estoque crítico é o nível mínimo de estoque abaixo do qual existe risco de desabastecimento.
      Considera-se estoque crítico quando a cobertura é igual ou menor que 15 dias de consumo médio.
+     Você só utilizará o estoque crítico se a perguntar mencionar.
+     Em falta = estoque disponível zero.
      
      ### Consumo médio mensal:
      O consumo médio mensal é calculado considerando os últimos 3 meses.
      
      Como se calcula:
      Calcular o consumo médio diário:
-      CMD=Consumo mensal / 30 dias​
+      CMD=Consumo mensal / 30 dias
      Calcular a cobertura em dias:
       Cobertura (dias)=Quantidade em estoque disponivel / Consumo mensal
      Comparar com o valor crítico:
@@ -138,3 +147,10 @@ templates:
      
      ## Estoque
      A tabela de estoque sinaliza o estoque para um local. Caso seja necessário o estoque de forma ampla para um produto, o estoque deve ser somado.
+     
+     ## Consumo
+     Sempre que a pergunta for relacionada a consumo, deve-se filtrar ds_operacao para %consumo% (tratando para lowercase).
+     O consumo médio mensal de um determinado produto esta na tebale estoque (qt_consumo), a não ser que a pergunta especifique uma data limite das movimentações do tipo consumo para calcular a média.
+
+     ## Impacto Financeiro
+     Perdas e vencimentos contemplam: perda, quebra, avaria, dano, desvio e diminuição.

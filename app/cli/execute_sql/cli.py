@@ -20,6 +20,7 @@ from app.config.paths import EXECUTE_CONFIG_FILE, QUERIES_DIR, RESULTS_DIR
 
 from .config import (
     DEFAULT_TARGET_DATE,
+    DEFAULT_TIMEOUT,
     OUTPUT_ERROR_FILE,
     OUTPUT_RESULT_FILE,
     OUTPUT_SUMMARY_FILE,
@@ -108,6 +109,7 @@ def process_sql_files(
     target_date: str,
     db_config: dict[str, str],
     resume: bool = True,
+    timeout: int | None = None,
 ) -> pd.DataFrame:
     """
     Processa e executa todos os arquivos SQL descobertos.
@@ -177,7 +179,7 @@ def process_sql_files(
             df_summary.to_csv(summary_file, index=False)
             continue
 
-        df_result, error_msg = execute_query(query, db_config)
+        df_result, error_msg = execute_query(query, db_config, timeout=timeout)
 
         if df_result is not None:
             output_file = result_folder / OUTPUT_RESULT_FILE
@@ -256,6 +258,10 @@ def run(
         bool,
         typer.Option("--resume/--no-resume", help="Retoma execução de onde parou.")
     ] = True,
+    timeout: Annotated[
+        Optional[int],
+        typer.Option("--timeout", "-t", help="Timeout em segundos para cada query.")
+    ] = None,
 ) -> None:
     """
     Executa queries SQL dos arquivos .sql gerados pelo text2sql-generate.
@@ -280,6 +286,7 @@ def run(
     cfg_queries = get_config_value(queries_dir, yaml_config, "paths.queries", QUERIES_DIR)
     cfg_results = get_config_value(results_dir, yaml_config, "paths.results", RESULTS_DIR)
     cfg_target_date = get_config_value(target_date, yaml_config, "sql.target_date", DEFAULT_TARGET_DATE)
+    cfg_timeout = get_config_value(timeout, yaml_config, "sql.timeout", DEFAULT_TIMEOUT)
 
     if isinstance(cfg_queries, str):
         cfg_queries = Path(cfg_queries)
@@ -296,6 +303,7 @@ def run(
     typer.echo(f"Diretório de queries: {cfg_queries}")
     typer.echo(f"Diretório de resultados: {cfg_results}")
     typer.echo(f"Data alvo: {cfg_target_date}")
+    typer.echo(f"Timeout: {cfg_timeout}s" if cfg_timeout else "Timeout: sem limite")
     typer.echo(f"Modo resume: {'Sim' if resume else 'Não'}")
     typer.echo("-" * 60)
 
@@ -321,7 +329,7 @@ def run(
     typer.echo("-" * 60)
 
     cfg_results.mkdir(parents=True, exist_ok=True)
-    df_summary = process_sql_files(sql_files, cfg_results, cfg_target_date, db_config, resume)
+    df_summary = process_sql_files(sql_files, cfg_results, cfg_target_date, db_config, resume, cfg_timeout)
 
     summary_file = cfg_results / OUTPUT_SUMMARY_FILE
     df_summary.to_csv(summary_file, index=False)

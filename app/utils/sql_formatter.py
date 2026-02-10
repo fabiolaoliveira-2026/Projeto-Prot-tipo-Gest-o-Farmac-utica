@@ -14,25 +14,28 @@ import sqlparse
 def format_sql(sql: str) -> str:
     """
     Formata uma query SQL para melhor legibilidade.
-    
+
     Aplica formatação padrão com indentação e palavras-chave em maiúsculo.
-    
+
     Args:
         sql: Query SQL a ser formatada.
-        
+
     Returns:
         Query SQL formatada.
     """
     if not sql or pd.isna(sql):
         return ""
-    
-    formatted = sqlparse.format(
-        sql,
-        reindent=True,
-        keyword_case='upper',
-        indent_width=2
-    )
-    return formatted.strip()
+
+    try:
+        formatted = sqlparse.format(
+            sql,
+            reindent=True,
+            keyword_case='upper',
+            indent_width=2
+        )
+        return formatted.strip()
+    except Exception:
+        return sql.strip()
 
 
 def generate_sql_diff_html(sql_gt: str, sql_model: str) -> str:

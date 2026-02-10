@@ -8,6 +8,9 @@ de substituição em queries SQL.
 # Data padrão para substituição de CURRENT_DATE
 DEFAULT_TARGET_DATE = "2024-06-01"
 
+# Timeout padrão em segundos (None = sem limite)
+DEFAULT_TIMEOUT = 60
+
 # Configurações de conexão padrão (sobrescritas por variáveis de ambiente)
 DEFAULT_DB_CONFIG = {
     "host": "localhost",

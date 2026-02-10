@@ -58,6 +58,7 @@ def create_connection_string(config: dict[str, str]) -> str:
 def execute_query(
     query: str,
     db_config: Optional[dict[str, str]] = None,
+    timeout: Optional[int] = None,
 ) -> tuple[Optional[pd.DataFrame], Optional[str]]:
     """
     Executa uma query SQL no banco de dados PostgreSQL.
@@ -65,6 +66,7 @@ def execute_query(
     Args:
         query: Query SQL a ser executada.
         db_config: Configuração de conexão (usa env vars se None).
+        timeout: Timeout em segundos para execução da query (None = sem limite).
 
     Returns:
         Tupla (DataFrame com resultados, None) em sucesso ou (None, mensagem de erro) em falha.
@@ -76,7 +78,12 @@ def execute_query(
 
     try:
         connection_string = create_connection_string(db_config)
-        engine = create_engine(connection_string)
+
+        connect_args = {}
+        if timeout:
+            connect_args["options"] = f"-c statement_timeout={timeout * 1000}"
+
+        engine = create_engine(connection_string, connect_args=connect_args)
 
         safe_query = query.replace("%", "%%") if "%" in query else query
 

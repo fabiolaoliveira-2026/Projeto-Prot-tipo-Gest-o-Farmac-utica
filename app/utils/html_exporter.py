@@ -11,6 +11,7 @@ from datetime import datetime
 import pandas as pd
 
 from app.config.theme import COLORS
+from app.config.paths import RESULTS_DIR
 from app.data.loaders import (
     get_question_with_params,
     get_summary_value,
@@ -36,13 +37,13 @@ def create_metrics_chart_html(metrics: pd.DataFrame) -> str:
     for _, row in metrics.iterrows():
         question_id = int(row["id"])
         f1_val = row.get("f1", None)
+        f1 = float(f1_val) if pd.notna(f1_val) else 0.0
 
-        if pd.notna(f1_val):
-            data.append({
-                "id": question_id,
-                "Pergunta": f"Q{question_id}",
-                "F1": float(f1_val)
-            })
+        data.append({
+            "id": question_id,
+            "Pergunta": f"Q{question_id}",
+            "F1": f1
+        })
 
     if not data:
         return "<p>Sem dados de F1 disponíveis</p>"
@@ -365,6 +366,9 @@ def generate_question_detail_html(
     sql_gt_formatted = format_sql(sql_gt) if sql_gt else "SQL não encontrado"
     sql_model_formatted = format_sql(sql_model) if sql_model else "SQL não encontrado"
 
+    sql_gt_html = format_expandable_html(sql_gt_formatted, f"sql-gt-{question_id}") if sql_gt else '<pre class="sql-code">SQL não encontrado</pre>'
+    sql_model_html = format_expandable_html(sql_model_formatted, f"sql-model-{question_id}") if sql_model else '<pre class="sql-code">SQL não encontrado</pre>'
+
     params_html = ""
     if parametros:
         param_rows = []
@@ -406,8 +410,23 @@ def generate_question_detail_html(
     gt_preview = load_pair_result_preview(run, question_id, is_ground_truth=True)
     model_preview = load_pair_result_preview(pair_name, question_id, is_ground_truth=False)
 
-    gt_preview_html = dataframe_to_html(gt_preview) if gt_preview is not None else "<p>Preview não disponível</p>"
-    model_preview_html = dataframe_to_html(model_preview) if model_preview is not None else "<p>Preview não disponível</p>"
+    if gt_preview is not None:
+        gt_preview_html = dataframe_to_html(gt_preview)
+    else:
+        gt_error = load_error_file(run, question_id, is_ground_truth=True)
+        if gt_error:
+            gt_preview_html = format_error_html(gt_error, f"gt-{question_id}")
+        else:
+            gt_preview_html = "<p>Preview não disponível</p>"
+
+    if model_preview is not None:
+        model_preview_html = dataframe_to_html(model_preview)
+    else:
+        model_error = load_error_file(pair_name, question_id, is_ground_truth=False)
+        if model_error:
+            model_preview_html = format_error_html(model_error, f"model-{question_id}")
+        else:
+            model_preview_html = "<p>Preview não disponível</p>"
 
     return f"""
     <div class="question-detail" id="q{question_id}">
@@ -427,11 +446,11 @@ def generate_question_detail_html(
         <div class="sql-comparison">
             <div class="sql-box">
                 <h4>🎯 SQL Ground Truth</h4>
-                <pre class="sql-code">{sql_gt_formatted}</pre>
+                {sql_gt_html}
             </div>
             <div class="sql-box">
                 <h4>🤖 SQL Modelo</h4>
-                <pre class="sql-code">{sql_model_formatted}</pre>
+                {sql_model_html}
             </div>
         </div>
         
@@ -447,6 +466,94 @@ def generate_question_detail_html(
         </div>
     </div>
     """
+
+
+MAX_ERROR_LENGTH = 500
+MAX_SQL_LENGTH = 1000
+
+
+def format_expandable_html(content: str, content_id: str, css_class: str = "sql-code") -> str:
+    """
+    Formata conteúdo para HTML com botão de expandir se for grande.
+
+    Args:
+        content: Texto do conteúdo.
+        content_id: ID único para o elemento.
+        css_class: Classe CSS para o pre.
+
+    Returns:
+        HTML formatado.
+    """
+    max_len = MAX_ERROR_LENGTH if "error" in css_class else MAX_SQL_LENGTH
+
+    escaped = (
+        content.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+    )
+
+    if len(content) <= max_len:
+        return f'<pre class="{css_class}">{escaped}</pre>'
+
+    truncated = escaped[:max_len]
+    btn_class = "expand-btn-error" if "error" in css_class else "expand-btn-sql"
+    return f'''<pre class="{css_class}" id="{content_id}-short">{truncated}...</pre>
+        <pre class="{css_class}" id="{content_id}-full" style="display:none;">{escaped}</pre>
+        <button class="expand-btn {btn_class}" onclick="toggleExpand('{content_id}')">Ver mais</button>'''
+
+
+def format_error_html(error: str, error_id: str) -> str:
+    """
+    Formata erro para HTML com botão de expandir se for grande.
+
+    Args:
+        error: Texto do erro.
+        error_id: ID único para o elemento.
+
+    Returns:
+        HTML formatado do erro.
+    """
+    escaped_error = (
+        error.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+    )
+
+    if len(error) <= MAX_ERROR_LENGTH:
+        return f'<div class="error-box"><pre>{escaped_error}</pre></div>'
+
+    truncated = escaped_error[:MAX_ERROR_LENGTH]
+    return f'''<div class="error-box">
+        <pre id="{error_id}-short">{truncated}...</pre>
+        <pre id="{error_id}-full" style="display:none;">{escaped_error}</pre>
+        <button class="expand-btn" onclick="toggleError('{error_id}')">Ver mais</button>
+    </div>'''
+
+
+def load_error_file(pair_name: str, question_id: int, is_ground_truth: bool = False) -> str | None:
+    """
+    Carrega o arquivo de erro de uma pergunta.
+
+    Args:
+        pair_name: Nome do par no formato "modelo/run" ou "run" para GT.
+        question_id: ID da pergunta.
+        is_ground_truth: Se True, carrega do ground_truth.
+
+    Returns:
+        Conteúdo do erro ou None se não existir.
+    """
+    if is_ground_truth:
+        run = pair_name.split("/")[-1] if "/" in pair_name else pair_name
+        path = RESULTS_DIR / "ground_truth" / run / str(question_id) / "erro.txt"
+    else:
+        path = RESULTS_DIR / pair_name / str(question_id) / "erro.txt"
+
+    if path.exists():
+        try:
+            return path.read_text(encoding="utf-8")
+        except Exception:
+            return None
+    return None
 
 
 def dataframe_to_html(df: pd.DataFrame) -> str:
@@ -514,8 +621,6 @@ def generate_full_html_report(pair_name: str) -> str:
     Returns:
         String HTML completa do relatório.
     """
-    from app.config.paths import RESULTS_DIR
-
     metrics_path = RESULTS_DIR / pair_name / "metricas.csv"
     metrics = pd.read_csv(metrics_path) if metrics_path.exists() else None
 
@@ -882,6 +987,48 @@ def generate_full_html_report(pair_name: str) -> str:
         .success {{ color: var(--color-success); font-weight: 600; }}
         .error {{ color: var(--color-error); font-weight: 600; }}
         .warning {{ color: var(--color-warning); font-weight: 600; }}
+
+        .error-box {{
+            background: #FEF2F2;
+            border: 1px solid #FECACA;
+            border-radius: 8px;
+            padding: 1rem;
+            color: #991B1B;
+        }}
+
+        .error-box pre {{
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+        }}
+
+        .expand-btn {{
+            margin-top: 0.5rem;
+            padding: 0.25rem 0.75rem;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }}
+
+        .expand-btn-error {{
+            background: #DC2626;
+        }}
+
+        .expand-btn-error:hover {{
+            background: #B91C1C;
+        }}
+
+        .expand-btn-sql {{
+            background: var(--color-precision);
+        }}
+
+        .expand-btn-sql:hover {{
+            background: #1E3A8A;
+        }}
         
         .question-detail {{
             background: var(--color-background);
@@ -1102,6 +1249,23 @@ def generate_full_html_report(pair_name: str) -> str:
             <p>© {datetime.now().year} - Todos os direitos reservados</p>
         </footer>
     </div>
+    <script>
+        function toggleExpand(id) {{
+            const shortEl = document.getElementById(id + '-short');
+            const fullEl = document.getElementById(id + '-full');
+            const btn = event.target;
+            if (fullEl.style.display === 'none') {{
+                shortEl.style.display = 'none';
+                fullEl.style.display = 'block';
+                btn.textContent = 'Ver menos';
+            }} else {{
+                shortEl.style.display = 'block';
+                fullEl.style.display = 'none';
+                btn.textContent = 'Ver mais';
+            }}
+        }}
+        function toggleError(id) {{ toggleExpand(id); }}
+    </script>
 </body>
 </html>
     """

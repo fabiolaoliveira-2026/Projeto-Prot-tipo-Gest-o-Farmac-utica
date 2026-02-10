@@ -51,9 +51,9 @@ parameters:
       Y1: "90 days"
     16:
       X1: "37"
-      Y1: "30 days"
+      Y1: "3 months"
     17:
-      Y1: "30"
+      Y1: "30 days"
       Y2: "90 days"
     18:
       Y1: "30 days"
